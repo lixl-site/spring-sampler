@@ -1,6 +1,12 @@
 package com.lixl.spring.sampler;
 
-import com.alibaba.fastjson.util.IOUtils;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -11,13 +17,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import com.alibaba.fastjson.util.IOUtils;
 
 /**
  * https://github.com/SophonPlus/ChineseNlpCorpus/blob/master/datasets/yf_dianping/intro.ipynb
@@ -38,8 +38,6 @@ public class CSVFileImportDB {
      */
     private String fileName = "ratings.csv";
     private String filePath = "G:\\dataset";
-    private String tableName = "ratings";
-    private String[] fileds = {"USERID", "RESTID", "RATING", "RATING_ENV", "RATING_FLAVOR", "RATING_SERVICE", "TIMESTAMP", "RATINGS_COMMENT"};
     /***
      * 批量提交，每次提交数量
      * @author wuzh
@@ -65,14 +63,43 @@ public class CSVFileImportDB {
      */
     public Map<String, Object> packagingParameters(String[] params) {
         Map<String, Object> map = new HashMap<>();
-        map.put("USERID", params[0]);
-        map.put("RESTID", params[1]);
-        map.put("RATING", params[2]);
-        map.put("RATING_ENV", params[3]);
-        map.put("RATING_FLAVOR", params[4]);
-        map.put("RATING_SERVICE", params[5]);
-        map.put("TIMESTAMP", params[6]);
-        map.put("RATINGS_COMMENT", params[7]);
+        if(params!=null) {
+        	for(int i=0;i<params.length;i++) {
+        		String value = params[i];
+        		if(value==null || value.isEmpty()) {
+        			value = "0";
+        		}
+        		switch (i) {
+				case 0:
+					 map.put("USERID", value);
+					break;
+				case 1:
+					 map.put("RESTID", value);
+					break;
+				case 2:
+					 map.put("RATING", value);
+					break;
+				case 3:
+					 map.put("RATING_ENV", value);
+					break;
+				case 4:
+					 map.put("RATING_FLAVOR", value);
+					break;
+				case 5:
+					 map.put("RATING_SERVICE", value);
+					break;
+				case 6:
+					 map.put("TIMESTAMP", value);
+					break;
+				case 7:
+					 map.put("RATINGS_COMMENT", value);
+					break;
+				default:
+					break;
+				}
+        	}
+        }
+       
         return map;
     }
 
@@ -84,37 +111,9 @@ public class CSVFileImportDB {
      * @author wuzh
      * @date 2019-06-04 18:04
      */
-    public void batchInset(String sql, Map<String, ?>[] params) {
+    public void batchInsert(String sql, Map<String, Object>[] params) {
         NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         namedParameterJdbcTemplate.batchUpdate(sql, params);
-    }
-
-    /**
-     * sql语句
-     *
-     * @param
-     * @return java.lang.String
-     * @author wuzh
-     * @date 2019-06-04 18:04
-     */
-    private String insertNamedParameter(String tableName, String[] fileds) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(" insert into \n");
-        sb.append(tableName + " \n");
-        sb.append(" ( \n");
-        for (String filed : fileds) {
-            sb.append(filed + ",");
-        }
-        sb.deleteCharAt(sb.length() - 1);
-        sb.append(" ) \n");
-        sb.append(" VALUES\n");
-        sb.append(" (");
-        for (String filed : fileds) {
-            sb.append(":" + filed + ",");
-        }
-        sb.deleteCharAt(sb.length() - 1);
-        sb.append(")\n");
-        return sb.toString();
     }
 
     /**
@@ -129,43 +128,40 @@ public class CSVFileImportDB {
     public void upload(String fileName, String filePath) {
         File file = new File(filePath + File.separator + fileName);
         BufferedReader reader = null;
-        int line = 0;
         int i = -1;
         Long pre = new Date().getTime();
-
-        Map[] params = new HashMap[j];
-        String sql = insertNamedParameter(tableName, this.fileds);
+        long lineCount = 0;
+        long rowCount = 0;
+        Map<String, Object>[] params = new HashMap[j];
+        //USERID, RESTID, RATING, RATING_ENV, RATING_FLAVOR, RATING_SERVICE, TIMESTAMP, RATINGS_COMMENT"
+        String sql = "INSERT INTO RATINGS(USERID, RESTID, RATING, RATING_ENV, RATING_FLAVOR, RATING_SERVICE, TIMESTAMP, RATINGS_COMMENT) values(?,?,?,?,?,?,?,?) ";
         try {
             reader = new BufferedReader(new FileReader(file));
             String tempString = "";
-            while ((tempString = reader.readLine()) != null) {
-                line++;
-                if (line == 1) {
+            String line = "";
+            while ((line = reader.readLine()) != null) {
+            	lineCount ++;
+                if (line.isEmpty() || lineCount==1) {
                     continue;
                 }
-                String[] fileds = tempString.split(",", this.fileds.length);
-                while (!lineEnd(fileds[7])) {
-                    fileds[7] += "\n" + reader.readLine();
-                }
-                fileds[7] = formatComm(fileds[7]);
-                logger.info(Arrays.toString(fileds));
-                i++;
-                if (i < j - 1) {
-                    Map<String, Object> param = packagingParameters(fileds);
-                    params[i] = param;
-                } else {
-                    Map<String, Object> param = packagingParameters(fileds);
-                    params[i] = param;
-                    batchInset(sql, params);
-                    //初始化i,params
-                    i = -1;
-                    params = new HashMap[j];
+                tempString += line.trim();
+                if(tempString.endsWith("\"")) {
+                	 String[] fileds = tempString.split(",");
+                	 tempString = "";
+                	 i++;
+                	 rowCount ++;
+                	 params[i] = packagingParameters(fileds);
+                     if(i==j-1) {
+                    	 batchInsert(sql, params);
+                    	 i = -1;
+                    	 params = new HashMap[j];
+                     }
                 }
             }
-
         } catch (Exception e) {
             logger.error("发生异常：", e);
         } finally {
+        	System.out.println("lineCount="+lineCount+" \trowCount="+rowCount);
             IOUtils.close(reader);
             Long after = new Date().getTime();
             logger.info("执行时间：" + (after - pre) + "毫秒");
@@ -188,18 +184,6 @@ public class CSVFileImportDB {
         }
 
         return comm;
-    }
-
-    /***
-     * 判断数据是否读取完，根据comm字段
-     * 判断条件：以"结尾并以"开始，或者为空
-     * @author wuzh
-     * @date 2019-06-04 18:19
-     * @param line
-     * @return boolean
-     */
-    public boolean lineEnd(String line) {
-        return (line.endsWith("\"") && (!line.endsWith("\"\"")) && line.startsWith("\"")) || (line.isEmpty());
     }
 
 }
