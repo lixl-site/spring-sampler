@@ -7,32 +7,11 @@ import java.io.FileReader;
 import java.io.IOException;
 
 public class PrintTest {
-
+	private static String[] fileds = { "USERID", "RESTID", "RATING", "RATING_ENV", "RATING_FLAVOR", "RATING_SERVICE",
+			"TIMESTAMP", "RATINGS_COMMENT" };
+	
 	public static void main(String[] args) {
-		File file = new File("G:\\dataset\ratings.csv");
-		FileReader fileReader = null;
-		try {
-			fileReader = new FileReader(file);
-			BufferedReader bufferedReader = new BufferedReader(fileReader);
-			try {
-				String temp = null;
-				while((temp = bufferedReader.readLine())!=null) {
-					//bufferedReader
-					
-				}
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-		if(fileReader!=null) {
-			try {
-				fileReader.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
+		System.out.println(String.join(",:", fileds));
 	}
 
 }
