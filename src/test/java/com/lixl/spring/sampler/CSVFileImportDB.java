@@ -114,8 +114,6 @@ public class CSVFileImportDB {
 				
 				i++;
 				rowCount++;
-				//System.err.println(lineCount);
-				//System.out.println(tempString);
 				Map<String, Object> map = new HashMap<>();
 				for (int j = 0; j < 8; j++) {
 					int l = tempString.length();
@@ -124,10 +122,6 @@ public class CSVFileImportDB {
 					if (j < 7) {
 						value = tempString.substring(0, k);
 						tempString = tempString.substring(k + 1, l);
-						/*
-						 * if(value!=null && value.length()>3 && j<6) { try { Integer.parseInt(value); }
-						 * catch (Exception e) { e.printStackTrace(); System.out.println(value); } }
-						 */
 					} else {
 						value = tempString;
 					}
@@ -145,6 +139,7 @@ public class CSVFileImportDB {
 		} catch (Exception e) {
 			logger.error("发生异常：", e);
 		} finally {
+			batchInsert(sql, params);//提交不足1000条的数据
 			System.out.println("lineCount=" + lineCount + " \trowCount=" + rowCount);
 			IOUtils.close(reader);
 			Long after = new Date().getTime();
